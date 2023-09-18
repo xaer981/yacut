@@ -1,10 +1,13 @@
+from http import HTTPStatus
+
 from flask import abort, flash, redirect, render_template
 
-from . import app, db
+from . import app
 from .constants import INDEX_TEMPLATE
 from .forms import URLForm
 from .models import URLMap
-from .utils import gen_unique_random_uri
+from .utils import add_urlmap
+from .validators import validate_links
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -14,25 +17,24 @@ def index_view():
         short = form.custom_id.data
         original = form.original_link.data
 
-        if short:
-            if URLMap.query.filter_by(short=short).first():
-                flash(f'Имя {short} уже занято!')
+        if error := validate_links(original=original,
+                                   short=short):
+            # Костыль из-за разных требований
+            # к сообщению об ошибке в тестах к проекту.
+            if 'уже занято' in error:
+                error = error.replace('"', '')
+                error = error.replace('.', '!')
 
-                return render_template(INDEX_TEMPLATE, form=form)
-
-        if URLMap.query.filter_by(original=original).first():
-            flash('Данная ссылка уже добавлена в базу')
+            flash(error)
 
             return render_template(INDEX_TEMPLATE, form=form)
 
-        object = URLMap(original=original,
-                        short=short or gen_unique_random_uri())
-        db.session.add(object)
-        db.session.commit()
+        url_map = add_urlmap(original=original,
+                             short=short)
 
         return render_template(INDEX_TEMPLATE,
                                form=form,
-                               short=object.get_absolute_short())
+                               short=url_map.get_absolute_short())
 
     return render_template(INDEX_TEMPLATE, form=form)
 
@@ -41,6 +43,6 @@ def index_view():
 def short_to_full_view(short):
     object = URLMap.query.filter_by(short=short).first()
     if not object:
-        abort(404)
+        abort(HTTPStatus.NOT_FOUND)
 
     return redirect(object.original)

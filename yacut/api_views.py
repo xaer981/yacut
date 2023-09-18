@@ -1,12 +1,12 @@
-import re
+from http import HTTPStatus
 
 from flask import jsonify, request
 
-from . import app, db
-from .constants import SHORT_PATTERN
+from . import app
 from .error_handlers import InvalidAPIUsage
 from .models import URLMap
-from .utils import gen_unique_random_uri, url_is_valid
+from .utils import add_urlmap
+from .validators import validate_links
 
 
 @app.route('/api/id/', methods=['POST'])
@@ -20,35 +20,15 @@ def add_url():
     original = data.get('url')
     short = data.get('custom_id')
 
-    if not original:
+    if error := validate_links(original=original,
+                               short=short):
 
-        raise InvalidAPIUsage('"url" является обязательным полем!')
+        raise InvalidAPIUsage(error)
 
-    if not url_is_valid(original):
+    url_map = add_urlmap(original=original,
+                         short=short)
 
-        raise InvalidAPIUsage('Данный текст не является ссылкой')
-
-    if short:
-        if URLMap.query.filter_by(short=short).first():
-
-            raise InvalidAPIUsage(f'Имя "{short}" уже занято.')
-
-        if len(short) > 16 or not re.compile(SHORT_PATTERN).match(short):
-
-            raise InvalidAPIUsage(
-                'Указано недопустимое имя для короткой ссылки')
-
-    if URLMap.query.filter_by(original=original).first():
-
-        raise InvalidAPIUsage('Данная ссылка уже добавлена в базу')
-
-    object = URLMap(original=original,
-                    short=short or gen_unique_random_uri())
-
-    db.session.add(object)
-    db.session.commit()
-
-    return jsonify(object.to_dict()), 201
+    return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 
 
 @app.route('/api/id/<short_id>/')
@@ -56,6 +36,6 @@ def get_full_from_short(short_id):
     object = URLMap.query.filter_by(short=short_id).first()
     if not object:
 
-        raise InvalidAPIUsage('Указанный id не найден', 404)
+        raise InvalidAPIUsage('Указанный id не найден', HTTPStatus.NOT_FOUND)
 
-    return jsonify({'url': object.original}), 200
+    return jsonify({'url': object.original}), HTTPStatus.OK
