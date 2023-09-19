@@ -1,10 +1,8 @@
 import random
-import re
 import string
-from typing import Optional
 
 from . import db
-from .constants import URL_PATTERN, RANDOM_SHORT_MAX_LENGTH
+from .constants import RANDOM_SHORT_MAX_LENGTH
 from .error_handlers import ValidationError
 from .models import URLMap
 from .validators import validate_links
@@ -17,7 +15,7 @@ def add_urlmap(original: str, short: str, index_view: bool = False) -> URLMap:
 
         raise ValidationError(error)
 
-    if existing_object := URLMap.query(original=original).first():
+    if existing_object := URLMap.get_object_or_none(original=original):
 
         return existing_object
 
@@ -36,13 +34,8 @@ def gen_unique_random_uri() -> str:
                            for char in random.sample(pool,
                                                      RANDOM_SHORT_MAX_LENGTH))
 
-    if URLMap.query.filter_by(short=random_short).first():
+    if URLMap.get_object_or_none(short=random_short):
 
         return gen_unique_random_uri()
 
     return random_short
-
-
-def url_is_valid(url) -> Optional[re.Match]:
-
-    return re.compile(URL_PATTERN).match(url)

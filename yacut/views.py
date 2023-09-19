@@ -27,14 +27,14 @@ def index_view():
                                    short=url_map.get_absolute_short())
 
         except ValidationError as error:
-            flash(error)
+            flash(error.message)
 
     return render_template(INDEX_TEMPLATE, form=form)
 
 
 @app.route('/<short>')
 def short_to_full_view(short):
-    object = URLMap.query.filter_by(short=short).first()
+    object = URLMap.get_object_or_none(short=short)
     if not object:
         abort(HTTPStatus.NOT_FOUND)
 

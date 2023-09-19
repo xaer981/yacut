@@ -21,14 +21,14 @@ def add_url():
                              short=data.get('custom_id'))
     except ValidationError as error:
 
-        raise InvalidAPIUsage(error)
+        raise InvalidAPIUsage(error.message)
 
     return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 
 
 @app.route('/api/id/<short_id>/')
 def get_full_from_short(short_id):
-    object = URLMap.query.filter_by(short=short_id).first()
+    object = URLMap.get_object_or_none(short=short_id)
     if not object:
 
         raise InvalidAPIUsage('Указанный id не найден', HTTPStatus.NOT_FOUND)

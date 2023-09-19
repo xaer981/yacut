@@ -3,7 +3,7 @@ from http import HTTPStatus
 from flask import jsonify, render_template
 
 from . import app, db
-from .constants import NOT_FOUND_TEMPLATE, INTERNAL_SERVER_ERROR_TEMPLATE
+from .constants import INTERNAL_SERVER_ERROR_TEMPLATE, NOT_FOUND_TEMPLATE
 
 
 class InvalidAPIUsage(Exception):
@@ -21,7 +21,7 @@ class InvalidAPIUsage(Exception):
 
 
 class ValidationError(Exception):
-    def __init__(self, message, index_view=False):
+    def __init__(self, message: str):
         super().__init__()
         self.message = message
 

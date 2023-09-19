@@ -19,3 +19,16 @@ class URLMap(db.Model):
 
         return dict(url=self.original,
                     short_link=self.get_absolute_short())
+
+    @staticmethod
+    def get_object_or_none(original: str = None,
+                           short: str = None):
+        if original:
+
+            return URLMap.query.filter_by(original=original).first()
+
+        if short:
+
+            return URLMap.query.filter_by(short=short).first()
+
+        return None

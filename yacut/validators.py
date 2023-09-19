@@ -1,9 +1,21 @@
 import re
 from typing import Optional
 
-from .constants import SHORT_PATTERN, CUSTOM_ID_MAX_LENGTH
+from .constants import CUSTOM_ID_MAX_LENGTH, SHORT_PATTERN, URL_PATTERN
 from .models import URLMap
-from .utils import url_is_valid
+
+
+def url_is_valid(original: str = None,
+                 short: str = None) -> Optional[re.Match]:
+    if original:
+
+        return re.compile(URL_PATTERN).match(original)
+
+    if short:
+
+        return re.compile(SHORT_PATTERN).match(short)
+
+    return None
 
 
 def validate_links(original: str,
@@ -13,12 +25,12 @@ def validate_links(original: str,
 
         return '"url" является обязательным полем!'
 
-    if not url_is_valid(original):
+    if not url_is_valid(original=original):
 
         return 'Данный текст не является ссылкой'
 
     if short:
-        if URLMap.query.filter_by(short=short).first():
+        if URLMap.get_object_or_none(short=short):
             # Костыль из-за разных требований
             # к сообщению об ошибке в тестах к проекту.
 
@@ -26,10 +38,8 @@ def validate_links(original: str,
                     else f'Имя "{short}" уже занято.')
 
         if (len(short) > CUSTOM_ID_MAX_LENGTH or
-           not re.compile(SHORT_PATTERN).match(short)):
+           not url_is_valid(short=short)):
 
             return 'Указано недопустимое имя для короткой ссылки'
 
-    if URLMap.query.filter_by(original=original).first():
-
-        return 'Данная ссылка уже добавлена в базу'
+    return None
