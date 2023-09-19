@@ -6,7 +6,9 @@ from .models import URLMap
 from .utils import url_is_valid
 
 
-def validate_links(original: str, short: str) -> Optional[str]:
+def validate_links(original: str,
+                   short: str,
+                   index_view: bool) -> Optional[str]:
     if not original:
 
         return '"url" является обязательным полем!'
@@ -17,8 +19,11 @@ def validate_links(original: str, short: str) -> Optional[str]:
 
     if short:
         if URLMap.query.filter_by(short=short).first():
+            # Костыль из-за разных требований
+            # к сообщению об ошибке в тестах к проекту.
 
-            return f'Имя "{short}" уже занято.'
+            return (f'Имя {short} уже занято!' if index_view
+                    else f'Имя "{short}" уже занято.')
 
         if (len(short) > CUSTOM_ID_MAX_LENGTH or
            not re.compile(SHORT_PATTERN).match(short)):

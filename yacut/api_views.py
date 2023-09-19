@@ -3,10 +3,9 @@ from http import HTTPStatus
 from flask import jsonify, request
 
 from . import app
-from .error_handlers import InvalidAPIUsage
+from .error_handlers import InvalidAPIUsage, ValidationError
 from .models import URLMap
 from .utils import add_urlmap
-from .validators import validate_links
 
 
 @app.route('/api/id/', methods=['POST'])
@@ -17,16 +16,12 @@ def add_url():
 
         raise InvalidAPIUsage('Отсутствует тело запроса')
 
-    original = data.get('url')
-    short = data.get('custom_id')
-
-    if error := validate_links(original=original,
-                               short=short):
+    try:
+        url_map = add_urlmap(original=data.get('url'),
+                             short=data.get('custom_id'))
+    except ValidationError as error:
 
         raise InvalidAPIUsage(error)
-
-    url_map = add_urlmap(original=original,
-                         short=short)
 
     return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 

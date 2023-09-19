@@ -5,10 +5,22 @@ from typing import Optional
 
 from . import db
 from .constants import URL_PATTERN, RANDOM_SHORT_MAX_LENGTH
+from .error_handlers import ValidationError
 from .models import URLMap
+from .validators import validate_links
 
 
-def add_urlmap(original: str, short: str) -> URLMap:
+def add_urlmap(original: str, short: str, index_view: bool = False) -> URLMap:
+    if error := validate_links(original=original,
+                               short=short,
+                               index_view=index_view):
+
+        raise ValidationError(error)
+
+    if existing_object := URLMap.query(original=original).first():
+
+        return existing_object
+
     url_map = URLMap(original=original,
                      short=short or gen_unique_random_uri())
     db.session.add(url_map)

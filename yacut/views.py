@@ -4,10 +4,10 @@ from flask import abort, flash, redirect, render_template
 
 from . import app
 from .constants import INDEX_TEMPLATE
+from .error_handlers import ValidationError
 from .forms import URLForm
 from .models import URLMap
 from .utils import add_urlmap
-from .validators import validate_links
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -17,24 +17,17 @@ def index_view():
         short = form.custom_id.data
         original = form.original_link.data
 
-        if error := validate_links(original=original,
-                                   short=short):
-            # Костыль из-за разных требований
-            # к сообщению об ошибке в тестах к проекту.
-            if 'уже занято' in error:
-                error = error.replace('"', '')
-                error = error.replace('.', '!')
+        try:
+            url_map = add_urlmap(original=original,
+                                 short=short,
+                                 index_view=True)
 
+            return render_template(INDEX_TEMPLATE,
+                                   form=form,
+                                   short=url_map.get_absolute_short())
+
+        except ValidationError as error:
             flash(error)
-
-            return render_template(INDEX_TEMPLATE, form=form)
-
-        url_map = add_urlmap(original=original,
-                             short=short)
-
-        return render_template(INDEX_TEMPLATE,
-                               form=form,
-                               short=url_map.get_absolute_short())
 
     return render_template(INDEX_TEMPLATE, form=form)
 
